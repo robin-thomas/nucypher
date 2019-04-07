@@ -8,7 +8,7 @@ RUN apt install gcc libffi-dev wget -y
 WORKDIR /code
 
 # Copy the current directory contents into the container at /app
-COPY . /code
+COPY ./host/nucypher /code
 
 # Run pipenv
 RUN pip3 install .

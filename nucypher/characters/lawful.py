@@ -71,7 +71,7 @@ from nucypher.blockchain.eth.decorators import validate_checksum_address
 
 
 class Alice(Character, PolicyAuthor):
-    
+
     banner = ALICE_BANNER
     _controller_class = AliceJSONController
     _default_crypto_powerups = [SigningPower, DecryptingPower, DelegatingPower]
@@ -316,6 +316,32 @@ class Alice(Character, PolicyAuthor):
                                   control_request=request,
                                   label=label)
             return response
+
+        @alice_control.route("/encrypt", methods=['PUT'])
+        def encrypt() -> Response:
+            """
+            Character control endpoint for encrypting.
+            """
+            try:
+                request_data = json.loads(request.data)
+                message = request_data['message']
+                label = request_data['label'].encode()
+            except (KeyError, JSONDecodeError) as e:
+                return Response(str(e), status=400)
+
+            encrypting_key = drone_alice.get_policy_pubkey_from_label(label)
+            enrico = Enrico(policy_encrypting_key=encrypting_key)
+            message_kit, signature = enrico.encrypt_message(bytes(message, encoding='utf-8'))
+
+            response_data = {
+                'result': {
+                    'message_kit': b64encode(message_kit.to_bytes()).decode(),
+                    'signature': b64encode(bytes(signature)).decode(),
+                },
+                'version': str(nucypher.__version__)
+            }
+
+            return Response(json.dumps(response_data), status=200)
 
         @alice_control.route("/grant", methods=['PUT'])
         def grant() -> Response:
@@ -616,7 +642,7 @@ class Bob(Character):
             """
             return controller(interface=controller._internal_controller.public_keys,
                               control_request=request)
-        
+
         @bob_control.route('/join_policy', methods=['POST'])
         def join_policy():
             """
